@@ -1,0 +1,1509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#8c1d18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>My Works</title>
+<style>
+/* Tibetan glyphs look small in most fonts, so scale only the Tibetan range up a little */
+@font-face{
+  font-family:"TibFont";
+  src:local("Noto Serif Tibetan"),local("Noto Sans Tibetan"),local("Microsoft Himalaya"),local("Jomolhari"),local("Qomolangma-Uchen Sarchen"),local("Kailasa"),local("Tibetan Machine Uni");
+  unicode-range:U+0F00-0FFF;
+  size-adjust:118%;
+}
+:root{
+  --bg:#faf6ef;--panel:#fffdf8;--ink:#2b2118;--muted:#7a6a58;--line:#e6dccb;
+  --accent:#8c1d18;--accent-ink:#fff;--chip:#f1e8d6;--sel:#f6ecd6;--shadow:0 1px 2px rgba(60,40,10,.06),0 4px 14px rgba(60,40,10,.06);
+  --k-audio:#2f7d6b;--k-video:#6a4fb3;--k-slides:#d0762b;--k-doc:#8c1d18;--k-image:#2d7fb8;--k-other:#8a7b69;--k-text:#b8862b;
+  --font:"TibFont",system-ui,"Segoe UI",Roboto,sans-serif;
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
+  --read:1;
+}
+/* themes: "Match my device" (no data-theme), or chosen in Settings */
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme]){--bg:#1a1612;--panel:#241e18;--ink:#f0e8da;--muted:#a89a86;--line:#3a3128;--accent:#e0795f;--accent-ink:#1a1612;--chip:#322a21;--sel:#33291c;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+    --k-audio:#5fb5a0;--k-video:#a595e0;--k-slides:#e8a063;--k-doc:#e0795f;--k-image:#6fb4e6;--k-other:#a89a86;--k-text:#d6a94a}
+}
+:root[data-theme=dark]{--bg:#1a1612;--panel:#241e18;--ink:#f0e8da;--muted:#a89a86;--line:#3a3128;--accent:#e0795f;--accent-ink:#1a1612;--chip:#322a21;--sel:#33291c;--shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+  --k-audio:#5fb5a0;--k-video:#a595e0;--k-slides:#e8a063;--k-doc:#e0795f;--k-image:#6fb4e6;--k-other:#a89a86;--k-text:#d6a94a}
+:root[data-theme=sepia]{--bg:#f1e6cc;--panel:#f9f1dc;--ink:#3a2e1c;--muted:#7d6b4c;--line:#d9c9a0;--accent:#8a3b12;--accent-ink:#fff;--chip:#e8d9b3;--sel:#efe0b8;--shadow:0 1px 2px rgba(80,55,10,.08),0 4px 14px rgba(80,55,10,.08)}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;font-size:clamp(15px,14px + .25vw,18px);height:100%}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:1rem/1.6 var(--font);overflow:hidden;overflow-wrap:anywhere}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* ---------- layout: one pane → two panes → three panes ---------- */
+#app{display:grid;height:100vh;height:100dvh;
+  grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+aside{grid-column:1/-1;grid-row:1}
+#list{grid-row:2;grid-column:1}
+#detail{grid-row:2;grid-column:1;display:none}
+aside,#list,#detail{min-width:0;min-height:0}
+#list,#detail{overflow:auto;overscroll-behavior:contain}
+
+/* sidebar / header */
+aside{background:linear-gradient(180deg,var(--panel),var(--bg));border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;
+  padding:calc(10px + var(--sat)) calc(14px + var(--sar)) 8px calc(14px + var(--sal))}
+.brand{order:1;flex:1 1 auto;font-size:1.25rem;font-weight:700;color:var(--accent);line-height:1.5;min-width:0}
+.brand small{display:block;font-size:.7rem;font-weight:400;color:var(--muted);line-height:1.3}
+.side-foot{order:2;display:flex;gap:6px;align-items:center}
+#usage{display:none}
+.bk{display:none}
+.navs{order:3;flex:1 0 100%;display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none}
+.navs::-webkit-scrollbar{display:none}
+.grp{display:none}
+.nav{flex:none;display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);background:var(--panel);
+  padding:6px 12px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.nav b{font-weight:500;font-size:.78rem;opacity:.7}
+.nav:hover{border-color:var(--accent)}
+.nav.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.nav .fn{display:none}
+
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 14px;border-radius:10px;cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:.82rem}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.danger{color:#c0392b}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* list pane */
+#list{padding:12px calc(12px + var(--sar)) calc(16px + var(--sab)) calc(12px + var(--sal))}
+.bar{position:sticky;top:-12px;z-index:2;display:flex;gap:8px;margin:-12px -12px 6px;padding:12px;background:linear-gradient(var(--bg) 80%,transparent)}
+.bar input{flex:1;min-width:0;padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+#folderbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;padding:8px 10px;background:var(--chip);border-radius:12px;font-size:.9rem}
+.countrow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 8px;margin:2px 4px 8px;font-size:.78rem;color:var(--muted)}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.countrow select{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:2px 6px;font-size:.78rem}
+.card{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--k-text);
+  border-radius:12px;padding:11px 14px;margin-bottom:9px;cursor:pointer;box-shadow:var(--shadow);transition:transform .15s,border-color .15s}
+.card[data-kind=audio]{border-left-color:var(--k-audio)}
+.card[data-kind=video]{border-left-color:var(--k-video)}
+.card[data-kind=slides]{border-left-color:var(--k-slides)}
+.card[data-kind=doc]{border-left-color:var(--k-doc)}
+.card[data-kind=image]{border-left-color:var(--k-image)}
+.card[data-kind=other]{border-left-color:var(--k-other)}
+.card:hover{transform:translateY(-1px)}
+.card.on,.card.picked{background:var(--sel);border-color:var(--accent);border-left-width:4px}
+.card h3{margin:0 0 2px;font-size:1.05rem;line-height:1.7}
+.card p{margin:0;color:var(--muted);font-size:.88rem;line-height:1.8;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ck{margin-right:8px;font-size:1.1rem}
+.meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;font-size:.76rem;color:var(--muted)}
+.chip{background:var(--chip);padding:1px 9px;border-radius:99px}
+mark{background:#ffe08a;color:#2b2118;border-radius:3px;padding:0 2px}
+#selbar{position:sticky;bottom:0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px;margin:8px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);z-index:3}
+#selbar .sc{flex:1 0 100%;font-size:.85rem;color:var(--muted)}
+
+/* detail pane */
+#detail{padding:0 calc(20px + var(--sar)) calc(60px + var(--sab)) calc(20px + var(--sal))}
+.wrap{max-width:62rem;margin:0 auto;animation:fade .25s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.wrap{animation:none}.card{transition:none}}
+.dbar{position:sticky;top:0;z-index:2;display:none;padding:calc(8px + var(--sat)) 0 8px;background:linear-gradient(var(--bg) 75%,transparent)}
+#detail h1{margin:18px 0 6px;font-size:clamp(1.35rem,1.1rem + 1.2vw,2.1rem);line-height:1.6}
+.tools{display:flex;gap:6px;margin-top:14px}
+.text{white-space:pre-wrap;font-size:calc(clamp(1.08rem,1rem + .5vw,1.4rem) * var(--read));line-height:2.1;margin:8px 0 18px;padding:clamp(14px,3vw,26px);
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+.actions{display:flex;gap:8px;margin:12px 0 0;flex-wrap:wrap}
+.files h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:26px 0 8px}
+.file{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:10px;box-shadow:var(--shadow)}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.file .row{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.file audio{width:100%;margin-top:8px}
+.file video{width:100%;aspect-ratio:16/9;background:#000;margin-top:8px;border-radius:10px}
+.file img{max-width:100%;height:auto;margin-top:8px;border-radius:10px}
+.file iframe{width:100%;height:clamp(320px,62dvh,760px);border:1px solid var(--line);border-radius:10px;margin-top:8px;background:#fff}
+.file pre{white-space:pre-wrap;font:inherit;font-size:calc(1rem * var(--read));line-height:2;margin:8px 0 0;max-height:300px;overflow:auto}
+.pdfhead{margin-top:8px}
+.pdfpage{background:#fff;margin:8px 0;border:1px solid var(--line);border-radius:6px;overflow:hidden;min-height:120px}
+.pdfpage canvas{display:block;width:100%;height:auto}
+details.pv{margin-top:8px}
+details.pv summary{cursor:pointer;color:var(--accent);font-weight:600}
+.pvbody{max-height:60vh;overflow:auto;padding:10px 14px;margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:calc(1rem * var(--read));line-height:1.9}
+.pvbody h4{margin:14px 0 4px}
+.pvbody p{margin:0 0 .6em}
+.dt{border-collapse:collapse;font-size:.88rem;display:block;overflow:auto;margin:6px 0}
+.dt td{border:1px solid var(--line);padding:3px 8px;vertical-align:top;white-space:pre-wrap}
+.hint{color:var(--muted);font-size:.85rem}
+.empty{margin:clamp(30px,10vh,90px) auto;max-width:380px;padding:0 16px;text-align:center;color:var(--muted)}
+.empty .big{display:block;font-size:2.6rem;opacity:.5;line-height:1.5;margin-bottom:8px}
+
+/* dialogs */
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--bg);color:var(--ink);padding:0;width:min(720px,94vw);max-height:92vh;max-height:92dvh;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.5);backdrop-filter:blur(2px)}
+dialog form,.sheet{padding:20px;display:grid;gap:12px}
+dialog h2{margin:0}
+dialog h3{margin:0;font-size:1rem}
+.sec{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:8px}
+label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+label.row{display:flex;gap:8px;align-items:center}
+label.row input{width:auto}
+label input,label select,label textarea{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font-size:1rem;width:100%;min-width:0}
+label textarea{min-height:clamp(140px,28dvh,320px);line-height:2;resize:vertical}
+label input[type=range]{padding:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:14px;text-align:center;color:var(--muted);display:grid;gap:6px;justify-items:center}
+.drop.over{border-color:var(--accent);background:var(--sel)}
+.drop label.btn{display:inline-block;color:var(--accent-ink);cursor:pointer;padding:10px 20px;font-size:1rem}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
+#ed-files{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+#ed-files li{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.9rem}
+#ed-files button{border:0;background:none;cursor:pointer;color:#c0392b;font-size:1.1rem;padding:4px 8px}
+.foot{display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--bg);padding:8px 0 calc(4px + var(--sab))}
+.sheetdlg{width:min(480px,94vw)}
+.opt{display:grid;gap:2px;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt b{font-weight:600;color:var(--ink)}
+.opt span{font-size:.85rem;color:var(--muted)}
+#drv-list{display:grid;gap:8px;max-height:46dvh;overflow:auto}
+#dropall{position:fixed;inset:0;background:rgba(140,29,24,.88);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:1.4rem;z-index:50;pointer-events:none}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + var(--sab));z-index:60;background:#2b2118;color:#fff;padding:10px 18px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:92vw;text-align:center;font-size:.9rem}
+#lock{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:20px}
+#lock form{display:grid;gap:12px;width:min(340px,100%);text-align:center}
+#lock h2{margin:0;color:var(--accent)}
+#lock input{padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);text-align:center;font-size:1.4rem;letter-spacing:.3em}
+#lock-msg{color:#c0392b;min-height:1.4em;font-size:.9rem}
+
+/* touch screens: bigger targets */
+@media(pointer:coarse){.btn,.nav{min-height:44px}.btn.sm{min-height:40px}.card{padding:13px 14px}}
+
+/* very narrow (foldable cover screen, small phones) */
+@media(max-width:359px){
+  html{font-size:14.5px}
+  .brand small{display:none}
+  .btn.sm{padding:5px 8px}
+  #detail{padding-left:calc(12px + var(--sal));padding-right:calc(12px + var(--sar))}
+}
+@media(max-width:520px){.two{grid-template-columns:1fr}}
+
+/* phones: one pane at a time, forms full screen, small menus as bottom sheets */
+@media(max-width:639px){
+  #app.show-detail aside,#app.show-detail #list{display:none}
+  #app.show-detail #detail{display:block}
+  .dbar{display:block}
+  dialog{width:100vw;max-width:100vw;height:100vh;height:100dvh;max-height:100dvh;border-radius:0;border:0}
+  dialog form{padding:calc(16px + var(--sat)) calc(16px + var(--sar)) 16px calc(16px + var(--sal));min-height:100%;align-content:start}
+  dialog.sheetdlg{height:auto;max-height:88dvh;margin:auto 0 0;border-radius:18px 18px 0 0}
+  dialog.sheetdlg .sheet{padding:18px 16px calc(18px + var(--sab))}
+  #set .sheet{padding:calc(16px + var(--sat)) 16px calc(16px + var(--sab))}
+}
+
+/* foldable inner screen, tablets, small laptops: list + reader side by side, chips on top */
+@media(min-width:640px){
+  #app{grid-template-columns:clamp(270px,38%,400px) minmax(0,1fr)}
+  #list{grid-column:1}
+  #detail{grid-column:2;display:block;border-left:1px solid var(--line)}
+  #usage{display:block;font-size:.76rem;color:var(--muted)}
+}
+
+/* laptops, desktops, landscape tablets: sidebar + list + reader */
+@media(min-width:1024px){
+  #app{grid-template-columns:clamp(230px,17vw,290px) clamp(320px,28vw,440px) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  aside{grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:0;border-bottom:0;border-right:1px solid var(--line);
+    padding:calc(16px + var(--sat)) 12px 14px calc(12px + var(--sal));overflow:auto;
+    background:linear-gradient(180deg,var(--panel),var(--bg))}
+  .brand{padding:0 6px 6px;font-size:1.35rem;flex:none}
+  .navs{order:2;flex:1 1 auto;flex-direction:column;overflow:visible;gap:2px;padding:0}
+  .grp{display:block;margin:16px 6px 6px;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .nav{border:0;background:none;border-radius:10px;justify-content:space-between;padding:8px 10px}
+  .nav:hover{background:var(--chip)}
+  .nav.on{background:var(--accent)}
+  .nav .fp{display:none}
+  .nav .fn{display:inline}
+  .nav[data-folder]{padding-left:calc(10px + var(--d,0) * 14px)}
+  .side-foot{order:3;flex-wrap:wrap;margin:14px 6px 0}
+  .bk{display:inline-block}
+  #usage{width:100%}
+  #list{grid-column:2;grid-row:1}
+  #detail{grid-column:3;grid-row:1}
+}
+
+/* big monitors */
+@media(min-width:1700px){
+  #app{grid-template-columns:300px 480px minmax(0,1fr)}
+  #detail{padding-left:48px;padding-right:48px}
+}
+
+/* short wide screens (phone or fold held sideways): keep the header compact */
+@media(max-height:480px) and (max-width:1023px){
+  .brand small{display:none}
+  aside{padding-top:calc(4px + var(--sat));padding-bottom:4px}
+  .file iframe{height:80dvh}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side"></aside>
+  <section id="list">
+    <div class="bar">
+      <input id="q" type="search" placeholder="Search titles, notes and inside files…" autocomplete="off" aria-label="Search">
+      <button class="btn primary" id="add">+ Add</button>
+    </div>
+    <div id="folderbar" hidden></div>
+    <div class="countrow"><span id="count"></span>
+      <span class="ctl"><span id="idx" class="hint"></span>
+        <button class="btn sm" id="selmode">☑ Select</button>
+        <select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="az">A – Z</option></select>
+      </span>
+    </div>
+    <div id="cards"></div>
+    <div id="selbar" hidden></div>
+  </section>
+  <main id="detail"></main>
+</div>
+
+<input type="file" id="import-file" accept=".json" class="vh">
+<div id="dropall" hidden>Drop files or folders to add them to your library</div>
+<div id="toast" hidden></div>
+
+<div id="lock" hidden>
+  <form id="lock-form">
+    <h2>🔒 My Works</h2>
+    <input id="lock-pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="PIN">
+    <div id="lock-msg"></div>
+    <button class="btn primary">Unlock</button>
+    <details class="hint"><summary>Forgot PIN?</summary>There is no way to recover it. Clearing this site's data in your browser removes the PIN <b>and</b> the library, so keep a Backup.</details>
+  </form>
+</div>
+
+<!-- Add / import menu -->
+<dialog id="imp" class="sheetdlg">
+  <div class="sheet">
+    <h2>Add to your library</h2>
+    <label>Put them in folder (optional)<input id="imp-base" list="folders" placeholder="e.g. Poems/2025" autocomplete="off"></label>
+    <button type="button" class="opt" id="opt-new"><b>✍️ New work</b><span>Type a title and notes, and attach files</span></button>
+    <label class="opt" for="imp-files"><b>📄 Import files</b><span>Pick one or many files from this device</span></label>
+    <input type="file" id="imp-files" multiple class="vh">
+    <label class="opt" for="imp-folder"><b>📁 Import a whole folder</b><span>Best on a laptop — keeps the folder structure</span></label>
+    <input type="file" id="imp-folder" webkitdirectory multiple class="vh">
+    <label class="opt" for="imp-zip"><b>🗜️ Import a Google Drive .zip</b><span>In Drive: right-click your folder → Download. Then pick that .zip here.</span></label>
+    <input type="file" id="imp-zip" accept=".zip,application/zip" class="vh">
+    <div class="foot"><button type="button" class="btn" id="imp-close">Close</button></div>
+  </div>
+</dialog>
+
+<!-- Move selected -->
+<dialog id="mv" class="sheetdlg">
+  <div class="sheet">
+    <h2>Move to folder</h2>
+    <label>Folder<input id="mv-folder" list="folders" placeholder="e.g. Poems/2025 (leave empty for no folder)" autocomplete="off"></label>
+    <div class="foot"><button type="button" class="btn" id="mv-cancel">Cancel</button><button type="button" class="btn primary" id="mv-ok">Move</button></div>
+  </div>
+</dialog>
+
+<!-- PIN -->
+<dialog id="pin" class="sheetdlg">
+  <div class="sheet">
+    <h2 id="pin-title">Set a PIN</h2>
+    <label id="pin-cur-l">Current PIN<input id="pin-cur" type="password" inputmode="numeric" autocomplete="off"></label>
+    <label id="pin-new-l">New PIN (4 or more digits)<input id="pin-new" type="password" inputmode="numeric" autocomplete="off"></label>
+    <label id="pin-new2-l">Repeat new PIN<input id="pin-new2" type="password" inputmode="numeric" autocomplete="off"></label>
+    <div class="hint" id="pin-note">The PIN keeps casual eyes out of the app. It does not encrypt the files stored on this device, and it can't be recovered if you forget it.</div>
+    <div id="pin-msg" class="hint" style="color:#c0392b"></div>
+    <div class="foot"><button type="button" class="btn" id="pin-cancel">Cancel</button><button type="button" class="btn primary" id="pin-ok">Save</button></div>
+  </div>
+</dialog>
+
+<!-- Drive folder picker -->
+<dialog id="drv" class="sheetdlg">
+  <div class="sheet">
+    <h2>Choose a Drive folder</h2>
+    <div class="hint" id="drv-path"></div>
+    <div id="drv-list"></div>
+    <div class="foot"><button type="button" class="btn" id="drv-back">← Up</button><button type="button" class="btn" id="drv-cancel">Cancel</button><button type="button" class="btn primary" id="drv-use">Use this folder</button></div>
+  </div>
+</dialog>
+
+<!-- Settings -->
+<dialog id="set">
+  <div class="sheet">
+    <h2>Settings</h2>
+
+    <div class="sec">
+      <h3>Appearance</h3>
+      <label>Theme<select id="s-theme"><option value="auto">Match my device</option><option value="light">Light</option><option value="sepia">Sepia (easy on the eyes)</option><option value="dark">Dark</option></select></label>
+      <label>Reading text size<input type="range" id="s-scale" min="0.8" max="1.8" step="0.1"></label>
+    </div>
+
+    <div class="sec">
+      <h3>Google Drive sync</h3>
+      <div class="hint" id="s-drive-status"></div>
+      <label>Your Google Client ID<input id="s-client" placeholder="1234-abc.apps.googleusercontent.com" autocomplete="off"></label>
+      <div class="btns">
+        <button type="button" class="btn sm" id="s-connect">Sign in</button>
+        <button type="button" class="btn sm" id="s-choose">Choose Drive folder</button>
+        <button type="button" class="btn sm primary" id="s-sync">Sync now</button>
+      </div>
+      <label class="row"><input type="checkbox" id="s-offdef"> Keep downloaded copies of everything on this device</label>
+      <details class="hint"><summary>How do I get a Client ID? (one-time, about 5 minutes)</summary>
+        <ol>
+          <li>Open Google Cloud Console, create a project, and turn on the <b>Google Drive API</b>.</li>
+          <li>Under <b>OAuth consent screen</b> choose External and add your own Google account as a <b>Test user</b>.</li>
+          <li>Under <b>Credentials</b> create an <b>OAuth client ID</b> of type <b>Web application</b>. Add the web address where this app is hosted as an <b>Authorized JavaScript origin</b>.</li>
+          <li>Copy the Client ID here, press <b>Sign in</b>, then <b>Choose Drive folder</b> and <b>Sync now</b>.</li>
+        </ol>
+        Sync only reads your Drive (it never changes it) and needs internet while syncing. It works only from the hosted https address, not from a file on your phone.
+      </details>
+    </div>
+
+    <div class="sec">
+      <h3>Privacy</h3>
+      <div class="hint" id="s-pin-status"></div>
+      <div class="btns" id="s-pin-btns"></div>
+    </div>
+
+    <div class="sec">
+      <h3>Your data</h3>
+      <div class="hint" id="s-storage"></div>
+      <div class="btns"><button type="button" class="btn sm" id="s-export">⬇ Backup</button><button type="button" class="btn sm" id="s-import">⬆ Restore</button></div>
+    </div>
+
+    <div class="foot"><button type="button" class="btn primary" id="set-close">Done</button></div>
+  </div>
+</dialog>
+
+<!-- New / edit work -->
+<dialog id="dlg">
+  <form id="form">
+    <h2 id="dlg-title">Add item</h2>
+    <label>Title<input id="f-title" placeholder="Leave blank to use the file name"></label>
+    <div class="two">
+      <label>Folder<input id="f-folder" list="folders" placeholder="e.g. Poems/2025 (optional)" autocomplete="off"></label>
+      <label>Tags (comma separated)<input id="f-tags" placeholder="e.g. draft, grade 8"></label>
+    </div>
+    <datalist id="folders"></datalist>
+    <label>Notes / text<textarea id="f-text" placeholder="Type or paste text here (any language)…"></textarea></label>
+    <div class="drop" id="drop">
+      <label class="btn primary" for="f-files">📁 Browse files</label>
+      <input type="file" id="f-files" class="vh" multiple>
+      <div id="drop-hint" class="hint"></div>
+      <small>Audio, video, PPT, PDF, Word, images — any file type</small>
+    </div>
+    <ul id="ed-files"></ul>
+    <div class="foot">
+      <button type="button" class="btn" id="cancel">Cancel</button>
+      <button class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const APP_NAME = 'My Works';
+const APP_TAG  = 'All your work, always with you — even offline';
+document.title = APP_NAME;
+
+/* =====================================================================
+   Settings (saved on this device) and small helpers
+   ===================================================================== */
+const SKEY = 'myworks.settings', OKEY = 'myworks.opened';
+const DEF = {theme:'auto', scale:1, clientId:'', drive:null, offDefault:true, offOv:{}, lastSync:0, pinSalt:'', pinHash:''};
+const lsGet = (k, d) => { try{ return {...d, ...JSON.parse(localStorage.getItem(k) || '{}')}; }catch(e){ return {...d}; } };
+const lsSet = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+let S = lsGet(SKEY, DEF);
+let O = lsGet(OKEY, {});                       /* item id -> last opened time */
+const saveS = () => lsSet(SKEY, S);
+const saveO = () => lsSet(OKEY, O);
+function applyAppearance(){
+  const r = document.documentElement;
+  if (S.theme === 'auto') r.removeAttribute('data-theme'); else r.dataset.theme = S.theme;
+  r.style.setProperty('--read', S.scale);
+}
+
+const EXT = {
+  audio:'mp3 wav m4a ogg oga flac aac opus',
+  video:'mp4 m4v webm mov mkv avi ogv',
+  slides:'ppt pptx pps ppsx odp key',
+  doc:'pdf doc docx odt rtf txt md xls xlsx ods csv',
+  image:'jpg jpeg png gif webp svg bmp'
+};
+const KINDS = {audio:'Audio',video:'Video',slides:'Presentations',doc:'Documents & PDF',image:'Images',other:'Other files'};
+const ICON  = {audio:'🎧',video:'🎬',slides:'📊',doc:'📄',image:'🖼️',other:'📎'};
+const MIME = {pdf:'application/pdf',mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',ogg:'audio/ogg',oga:'audio/ogg',flac:'audio/flac',aac:'audio/aac',opus:'audio/ogg',
+  mp4:'video/mp4',m4v:'video/mp4',webm:'video/webm',mov:'video/quicktime',ogv:'video/ogg',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',
+  webp:'image/webp',svg:'image/svg+xml',bmp:'image/bmp',txt:'text/plain',md:'text/plain',csv:'text/csv'};
+const LEGACY = {essay:'Essays', poem:'Poems', teaching:'Teaching materials', other:''};   /* earlier versions used fixed types; they become folders */
+
+const extOf = n => (n.split('.').pop() || '').toLowerCase();
+const mimeFor = (name, t) => t || MIME[extOf(name)] || 'application/octet-stream';
+function kindOf(f){
+  const t = f.type || '', e = extOf(f.name);
+  for (const k in EXT) if (EXT[k].split(' ').includes(e)) return k;
+  if (t.startsWith('audio')) return 'audio';
+  if (t.startsWith('video')) return 'video';
+  if (t.startsWith('image')) return 'image';
+  return 'other';
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => n < 1024 ? n + ' B' : n < 1048576 ? (n/1024).toFixed(0) + ' KB' : (n/1048576).toFixed(1) + ' MB';
+/* Search normaliser: Unicode NFC, lower case, ignore Tibetan tsheg/shad and spaces */
+const norm = s => (s || '').normalize('NFC').toLowerCase().replace(/[་།༎༔\s]+/g, '');
+const twoPane = () => matchMedia('(min-width:640px)').matches;
+const cleanFolder = s => (s || '').replace(/\\/g, '/').split('/').map(x => x.trim()).filter(Boolean).join('/').normalize('NFC');
+const inFolder = (it, p) => { const fo = it.folder || ''; return fo === p || fo.startsWith(p + '/'); };
+const collator = new Intl.Collator(undefined, {numeric:true, sensitivity:'base'});
+let toastTimer;
+function toast(msg, sticky){
+  const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer);
+  if (!sticky) toastTimer = setTimeout(() => t.hidden = true, 4000);
+}
+function download(blob, name){
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+}
+
+/* =====================================================================
+   IndexedDB (everything is stored on this device)
+   ===================================================================== */
+let db;
+const openDB = () => new Promise((ok, no) => {
+  const r = indexedDB.open('tibetan-library', 1);   /* same name as v1 so earlier saved items are kept */
+  r.onupgradeneeded = () => r.result.createObjectStore('items', {keyPath:'id', autoIncrement:true});
+  r.onsuccess = () => { db = r.result; ok(); };
+  r.onerror = () => no(r.error);
+});
+const store = m => db.transaction('items', m).objectStore('items');
+const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+const dbAll = () => req(store('readonly').getAll());
+const dbGet = id => req(store('readonly').get(id));
+const dbPut = it => req(store('readwrite').put(it));
+const dbDel = id => req(store('readwrite').delete(id));
+
+/* =====================================================================
+   State
+   ===================================================================== */
+let items = [], folder = null, special = null, kind = '', q = '', sortMode = 'new', sel = null, urls = [];
+let selecting = false; const picked = new Set();
+let renderId = 0, pdfDocs = [], pdfObservers = [];
+const hayCache = new WeakMap();
+
+async function load(){
+  items = await dbAll();
+  for (const it of items) if (it.folder === undefined){ it.folder = LEGACY[it.category] ?? ''; await dbPut(it); }   /* migrate older items */
+  if (sel && !items.some(i => i.id === sel)) sel = null;
+  if (!sel && twoPane()){ const v = visible(); if (v[0]) sel = v[0].id; }
+  render();
+  setTimeout(indexPending, 600);
+}
+
+function hayOf(it){
+  let h = hayCache.get(it);
+  if (h === undefined){
+    h = norm([it.title, it.folder, it.author, (it.tags || []).join(' '), it.text, it.ft, (it.files || []).map(f => f.name).join(' ')].join(' '));
+    hayCache.set(it, h);
+  }
+  return h;
+}
+function visible(){
+  const nq = norm(q);
+  let v = items.filter(it => {
+    if (folder !== null && !inFolder(it, folder)) return false;
+    if (special === 'fav' && !it.fav) return false;
+    if (special === 'recent' && !O[it.id]) return false;
+    if (kind && !(it.files || []).some(f => kindOf(f) === kind)) return false;
+    return !nq || hayOf(it).includes(nq);
+  });
+  if (special === 'recent') return v.sort((a, b) => O[b.id] - O[a.id]).slice(0, 30);
+  return v.sort((a, b) => sortMode === 'az' ? collator.compare(a.title, b.title) : b.created - a.created);
+}
+function folderTree(){
+  const counts = new Map();
+  for (const it of items){
+    let p = '';
+    for (const s of (it.folder || '').split('/').filter(Boolean)){ p = p ? p + '/' + s : s; counts.set(p, (counts.get(p) || 0) + 1); }
+  }
+  const key = p => p.split('/').join('\u0001');
+  return [...counts.entries()].sort((a, b) => collator.compare(key(a[0]), key(b[0])))
+    .map(([path, n]) => ({path, n, depth: path.split('/').length - 1, name: path.split('/').pop()}));
+}
+/* a highlighted snippet when the search matched inside the notes or inside a file's text */
+function snippet(it){
+  const nq = norm(q); if (!nq) return null;
+  const rx = new RegExp([...nq].map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[\\u0F0B\\u0F0D\\u0F0E\\u0F14\\s]*'), 'i');
+  for (const [src, inFile] of [[it.text, false], [it.ft, true]]){
+    if (!src) continue;
+    const m = rx.exec(src); if (!m) continue;
+    const a = Math.max(0, m.index - 50), b = Math.min(src.length, m.index + m[0].length + 70);
+    return {inFile, html: (a > 0 ? '…' : '') + esc(src.slice(a, m.index)) + '<mark>' + esc(m[0]) + '</mark>' + esc(src.slice(m.index + m[0].length, b)) + (b < src.length ? '…' : '')};
+  }
+  return null;
+}
+
+/* =====================================================================
+   Rendering
+   ===================================================================== */
+function renderSide(){
+  const nFav = items.filter(i => i.fav).length, nRec = items.filter(i => O[i.id]).length;
+  let h = `<div class="brand">${esc(APP_NAME)}<small>${esc(APP_TAG)}</small></div><div class="navs">`;
+  h += `<div class="grp">Library</div>
+    <button class="nav ${folder === null && !kind && !special ? 'on' : ''}" data-all="1"><span>📚 All works</span><b>${items.length}</b></button>
+    <button class="nav ${special === 'fav' ? 'on' : ''}" data-special="fav"><span>⭐ Favourites</span><b>${nFav}</b></button>
+    <button class="nav ${special === 'recent' ? 'on' : ''}" data-special="recent"><span>🕘 Recent</span><b>${Math.min(nRec, 30)}</b></button>`;
+  const ft = folderTree();
+  if (ft.length) h += '<div class="grp">Folders</div>' + ft.map(f =>
+    `<button class="nav ${folder === f.path && !kind && !special ? 'on' : ''}" data-folder="${esc(f.path)}" style="--d:${f.depth}"><span><span class="fp">📁 ${esc(f.path.replace(/\//g, ' › '))}</span><span class="fn">📁 ${esc(f.name)}</span></span><b>${f.n}</b></button>`).join('');
+  h += '<div class="grp">File type</div>';
+  h += Object.entries(KINDS).map(([k, l]) =>
+    `<button class="nav ${kind === k ? 'on' : ''}" data-kind="${k}"><span>${ICON[k]} ${l}</span><b>${items.filter(i => (i.files || []).some(f => kindOf(f) === k)).length}</b></button>`).join('');
+  h += '</div>';
+  h += `<div class="side-foot"><div id="usage"></div>
+    <button class="btn sm bk" id="export">⬇ Backup</button><button class="btn sm bk" id="import">⬆ Restore</button>
+    <button class="btn sm" id="open-set">⚙ Settings</button>${S.pinHash ? '<button class="btn sm" id="lock-now" aria-label="Lock">🔒</button>' : ''}</div>`;
+  $('#side').innerHTML = h;
+  if (navigator.storage && navigator.storage.estimate)
+    navigator.storage.estimate().then(e => { const u = $('#usage'); if (u) u.textContent = fmt(e.usage || 0) + ' stored on this device'; });
+}
+
+function keepOffline(path){
+  let p = path;
+  for (;;){
+    if (p in S.offOv) return S.offOv[p];
+    const i = p.lastIndexOf('/'); if (i < 0) break; p = p.slice(0, i);
+  }
+  return S.offDefault;
+}
+function renderFolderBar(){
+  const fb = $('#folderbar');
+  if (folder === null || special){ fb.hidden = true; return; }
+  const drv = items.some(it => inFolder(it, folder) && (it.files || []).some(f => f.rid));
+  const on = keepOffline(folder);
+  fb.hidden = false;
+  fb.innerHTML = `<b>📁 ${esc(folder.replace(/\//g, ' › '))}</b><span class="btns">
+    <button class="btn sm" data-fa="rename">✏️ Rename</button><button class="btn sm" data-fa="zip">⬇ Zip</button>
+    ${drv ? `<button class="btn sm ${on ? 'primary' : ''}" data-fa="offline">${on ? '📱 Kept on this device' : '☁ Cloud only'}</button>` : ''}</span>`;
+}
+
+function renderList(){
+  const v = visible();
+  const what = special === 'fav' ? ' favourite' : '';
+  $('#count').textContent = items.length ? `${v.length}${what} ${v.length === 1 ? 'work' : 'works'}${folder !== null && !special ? ' in “' + folder.split('/').pop() + '”' : ''}` : '';
+  $('#selmode').textContent = selecting ? '✕ Done' : '☑ Select';
+  $('#selmode').hidden = !items.length;
+  if (!items.length){
+    $('#cards').innerHTML = `<div class="empty"><span class="big">📂</span><p><b>Your library is empty.</b></p>
+      <p class="hint">Bring your work over from Google Drive once, and it stays on this device — ready offline.</p>
+      <button class="btn primary" id="empty-add">+ Add or import</button>
+      <p><button class="btn sm" id="seed">Load sample items</button></p></div>`;
+  } else if (!v.length){
+    $('#cards').innerHTML = '<div class="empty">Nothing found.</div>';
+  } else {
+    $('#cards').innerHTML = v.map(it => {
+      const files = it.files || [];
+      const ks = [...new Set(files.map(kindOf))];
+      const main = ks[0] || 'text';
+      const sn = snippet(it);
+      const cloud = files.length && files.every(f => !f.blob);
+      return `<button class="card ${it.id === sel && !selecting ? 'on' : ''} ${picked.has(it.id) ? 'picked' : ''}" data-id="${it.id}" data-kind="${main}">
+        <h3>${selecting ? `<span class="ck">${picked.has(it.id) ? '☑' : '☐'}</span>` : ''}${it.fav ? '⭐ ' : ''}${esc(it.title)}</h3>
+        ${sn ? `<p>${sn.html}</p>` : it.text ? `<p>${esc(it.text)}</p>` : ''}
+        <div class="meta">${it.folder ? `<span class="chip">📁 ${esc(it.folder.split('/').pop())}</span>` : ''}
+        ${files.length ? `<span>${cloud ? '☁ ' : ''}${ks.map(k => ICON[k]).join(' ')} ${files.length > 1 ? files.length : fmt(files[0].size)}</span>` : ''}
+        ${sn && sn.inFile ? '<span>🔎 found inside a file</span>' : ''}
+        ${it.author ? `<span>${esc(it.author)}</span>` : ''}</div></button>`;
+    }).join('');
+  }
+  const sb = $('#selbar');
+  sb.hidden = !selecting;
+  if (selecting) sb.innerHTML = `<div class="sc">${picked.size} selected</div>
+    <button class="btn sm" data-sa="all">All</button><button class="btn sm" data-sa="move" ${picked.size ? '' : 'disabled'}>📁 Move</button>
+    <button class="btn sm" data-sa="fav" ${picked.size ? '' : 'disabled'}>⭐</button><button class="btn sm" data-sa="zip" ${picked.size ? '' : 'disabled'}>⬇ Zip</button>
+    <button class="btn sm danger" data-sa="del" ${picked.size ? '' : 'disabled'}>🗑 Delete</button>`;
+}
+
+/* ---------- opening items: PDFs, Word/PowerPoint/Excel text, media ---------- */
+function stopViewers(){
+  pdfObservers.forEach(o => o.disconnect()); pdfObservers = [];
+  pdfDocs.forEach(d => { try{ d.destroy(); }catch(e){} }); pdfDocs = [];
+}
+function renderDetail(){
+  stopViewers();
+  urls.forEach(u => URL.revokeObjectURL(u)); urls = [];
+  const rid = ++renderId;
+  const it = items.find(i => i.id === sel);
+  const back = `<div class="dbar"><button class="btn" id="back">← Back</button></div>`;
+  if (!it){ $('#detail').innerHTML = back + `<div class="empty"><span class="big">📂</span>Select a work to open it.</div>`; return; }
+  const files = it.files || [];
+  let h = `<div class="wrap">${back}
+    <h1>${esc(it.title)}</h1>
+    <div class="meta">${it.folder ? `<span class="chip">📁 ${esc(it.folder.replace(/\//g, ' › '))}</span>` : ''}
+    ${(it.tags || []).map(t => `<span class="chip">${esc(t)}</span>`).join('')}
+    ${it.author ? `<span>${esc(it.author)}</span>` : ''}
+    <span>${new Date(it.created).toLocaleDateString()}</span></div>
+    <div class="actions"><button class="btn" id="fav">${it.fav ? '⭐ Favourite' : '☆ Favourite'}</button><button class="btn" id="share">Share</button><button class="btn" id="edit">Edit</button><button class="btn danger" id="delete">Delete</button></div>`;
+  if (it.text) h += `<div class="tools"><button class="btn sm" data-tool="smaller" aria-label="Smaller text">A−</button><button class="btn sm" data-tool="bigger" aria-label="Bigger text">A+</button><button class="btn sm" data-tool="copy">📋 Copy</button></div><div class="text">${esc(it.text)}</div>`;
+  if (files.length){
+    h += '<div class="files"><h2>Files</h2>';
+    files.forEach((f, i) => {
+      const k = kindOf(f), e = extOf(f.name);
+      if (!f.blob){
+        h += `<div class="file"><div class="row"><span>${ICON[k]} ${esc(f.name)} <span class="hint">· ${f.size ? fmt(f.size) : 'Google Doc'}</span></span>
+          <span class="btns"><button class="btn primary" data-dl="${i}">☁ Download</button></span></div>
+          <div class="hint">☁ Stored in Google Drive — not on this device yet.</div></div>`;
+        return;
+      }
+      const u = URL.createObjectURL(f.blob); urls.push(u);
+      const isPdf = e === 'pdf' || f.type === 'application/pdf';
+      const viewable = ['audio','video','image'].includes(k) || isPdf || /^(txt|md|csv)$/.test(e);
+      let prev = '';
+      if (k === 'audio') prev = `<audio controls preload="metadata" src="${u}"></audio>`;
+      else if (k === 'video') prev = `<video controls preload="metadata" playsinline src="${u}"></video>`;
+      else if (k === 'image') prev = `<img src="${u}" alt="">`;
+      else if (isPdf) prev = `<div class="pdfbox" data-pdf="${i}"><div class="hint pdfhead">Opening PDF…</div></div>`;
+      else if (/^(txt|md|csv)$/.test(e)) prev = `<pre data-txt="${i}"></pre>`;
+      else if (DOCEXT.includes(e)) prev = `<details class="pv" data-doc="${i}"><summary>📖 Read inside the app (text only)</summary><div class="pvbody hint">Opening…</div></details>`;
+      h += `<div class="file"><div class="row"><span>${ICON[k]} ${esc(f.name)} <span class="hint">· ${fmt(f.size)}</span></span>
+        <span class="btns">${viewable ? `<button class="btn" data-open="${i}">Open in new tab</button><button class="btn" data-save="${i}">Save</button>` : `<button class="btn" data-save="${i}">Open / Save</button>`}</span></div>${prev}</div>`;
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  $('#detail').innerHTML = h;
+  document.querySelectorAll('[data-txt]').forEach(p => files[+p.dataset.txt].blob.text().then(t => { if (rid === renderId) p.textContent = t; }));
+  document.querySelectorAll('[data-pdf]').forEach(b => mountPdf(b, files[+b.dataset.pdf], rid));
+  document.querySelectorAll('details.pv').forEach(d => d.addEventListener('toggle', async () => {
+    if (!d.open || d.dataset.done) return; d.dataset.done = 1;
+    const body = d.querySelector('.pvbody');
+    try{
+      const bl = await docBlocks(files[+d.dataset.doc]);
+      body.classList.remove('hint');
+      body.innerHTML = bl && bl.length ? blocksToHtml(bl.slice(0, 1500)) + (bl.length > 1500 ? '<p class="hint">…preview shortened</p>' : '') : '<span class="hint">No readable text found in this file.</span>';
+    }catch(err){ body.textContent = 'Could not read this file here — use Open / Save.'; }
+  }));
+}
+
+function render(){ renderSide(); renderFolderBar(); renderList(); renderDetail(); }
+
+/* =====================================================================
+   PDF viewer (pdf.js is bundled in the install version, so it works offline and on phones)
+   ===================================================================== */
+let pdfjsP = null;
+function getPdfJs(){
+  if (!pdfjsP) pdfjsP = import('./lib/pdf.min.mjs').then(m => { m.GlobalWorkerOptions.workerSrc = new URL('./lib/pdf.worker.min.mjs', document.baseURI).href; return m; }).catch(err => { console.warn('PDF reader not available:', err); return null; });
+  return pdfjsP;
+}
+async function mountPdf(box, f, rid){
+  const lib = await getPdfJs();
+  if (rid !== renderId) return;
+  const fallback = () => { const u = URL.createObjectURL(f.blob); urls.push(u); box.innerHTML = `<iframe src="${u}"></iframe><div class="hint">If the preview above is blank, press “Open in new tab”.</div>`; };
+  if (!lib){ fallback(); return; }
+  try{
+    const task = lib.getDocument({data: new Uint8Array(await f.blob.arrayBuffer()), useSystemFonts: true});
+    const doc = await task.promise;
+    if (rid !== renderId){ task.destroy(); return; }
+    pdfDocs.push(task);
+    box.innerHTML = `<div class="hint pdfhead">${doc.numPages} page${doc.numPages === 1 ? '' : 's'}</div><div class="pdfpages"></div>`;
+    const pages = box.querySelector('.pdfpages');
+    const vp1 = (await doc.getPage(1)).getViewport({scale: 1});
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return; io.unobserve(e.target); renderPdfPage(doc, +e.target.dataset.n, e.target, rid);
+    }), {root: $('#detail'), rootMargin: '800px'});
+    pdfObservers.push(io);
+    for (let n = 1; n <= doc.numPages; n++){
+      const d = document.createElement('div'); d.className = 'pdfpage'; d.dataset.n = n;
+      d.style.aspectRatio = vp1.width + ' / ' + vp1.height; pages.appendChild(d); io.observe(d);
+    }
+  }catch(err){ fallback(); }
+}
+async function renderPdfPage(doc, n, holder, rid){
+  if (rid !== renderId) return;
+  try{
+    const page = await doc.getPage(n);
+    const base = page.getViewport({scale: 1});
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const vp = page.getViewport({scale: ((holder.clientWidth || 800) / base.width) * dpr});
+    const c = document.createElement('canvas'); c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+    holder.style.aspectRatio = base.width + ' / ' + base.height; holder.appendChild(c);
+    await page.render({canvas: c, canvasContext: c.getContext('2d'), viewport: vp}).promise;
+  }catch(err){}
+}
+async function extractPdfText(blob){
+  const lib = await getPdfJs(); if (!lib) return '';
+  const task = lib.getDocument({data: new Uint8Array(await blob.arrayBuffer()), useSystemFonts: true});
+  let out = '';
+  try{
+    const doc = await task.promise;
+    for (let i = 1; i <= Math.min(doc.numPages, 80) && out.length < 200000; i++){
+      const tc = await (await doc.getPage(i)).getTextContent();
+      out += tc.items.map(x => x.str).join(' ') + '\n';
+    }
+  } finally { try{ task.destroy(); }catch(e){} }
+  return out;
+}
+
+/* =====================================================================
+   Zip reading (Drive downloads / Word / PowerPoint / Excel files are zips) and writing
+   ===================================================================== */
+async function readZip(file){
+  const tail = await file.slice(Math.max(0, file.size - 66000)).arrayBuffer();
+  const dv = new DataView(tail);
+  let e = -1;
+  for (let i = tail.byteLength - 22; i >= 0; i--) if (dv.getUint32(i, true) === 0x06054b50){ e = i; break; }
+  if (e < 0) throw new Error('this does not look like a zip file');
+  let total = dv.getUint16(e + 10, true), cdSize = dv.getUint32(e + 12, true), cdOff = dv.getUint32(e + 16, true);
+  if (total === 0xFFFF || cdOff === 0xFFFFFFFF){                       /* zip64 (big folders) */
+    if (e < 20 || dv.getUint32(e - 20, true) !== 0x07064b50) throw new Error('unsupported zip64 layout');
+    const loc = Number(dv.getBigUint64(e - 12, true));
+    const z = new DataView(await file.slice(loc, loc + 56).arrayBuffer());
+    if (z.getUint32(0, true) !== 0x06064b50) throw new Error('unsupported zip64 layout');
+    total = Number(z.getBigUint64(32, true)); cdSize = Number(z.getBigUint64(40, true)); cdOff = Number(z.getBigUint64(48, true));
+  }
+  const cd = new DataView(await file.slice(cdOff, cdOff + cdSize).arrayBuffer());
+  const out = []; let p = 0;
+  for (let i = 0; i < total; i++){
+    if (cd.getUint32(p, true) !== 0x02014b50) break;
+    const method = cd.getUint16(p + 10, true);
+    let csize = cd.getUint32(p + 20, true), usize = cd.getUint32(p + 24, true), off = cd.getUint32(p + 42, true);
+    const nlen = cd.getUint16(p + 28, true), xlen = cd.getUint16(p + 30, true), clen = cd.getUint16(p + 32, true);
+    const name = new TextDecoder('utf-8').decode(new Uint8Array(cd.buffer, p + 46, nlen));
+    if (usize === 0xFFFFFFFF || csize === 0xFFFFFFFF || off === 0xFFFFFFFF){
+      let q = p + 46 + nlen; const end = q + xlen;
+      while (q + 4 <= end){
+        const id = cd.getUint16(q, true), sz = cd.getUint16(q + 2, true);
+        if (id === 1){
+          let r = q + 4;
+          if (usize === 0xFFFFFFFF){ usize = Number(cd.getBigUint64(r, true)); r += 8; }
+          if (csize === 0xFFFFFFFF){ csize = Number(cd.getBigUint64(r, true)); r += 8; }
+          if (off === 0xFFFFFFFF){ off = Number(cd.getBigUint64(r, true)); }
+          break;
+        }
+        q += 4 + sz;
+      }
+    }
+    out.push({name, method, csize, usize, off});
+    p += 46 + nlen + xlen + clen;
+  }
+  return out;
+}
+async function zipEntryBlob(file, en){
+  const h = new DataView(await file.slice(en.off, en.off + 30).arrayBuffer());
+  const start = en.off + 30 + h.getUint16(26, true) + h.getUint16(28, true);
+  const raw = file.slice(start, start + en.csize);
+  if (en.method === 0) return raw;
+  if (en.method === 8) return await new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+  throw new Error('unsupported compression method');
+}
+const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+async function crc32(blob){
+  let c = 0xFFFFFFFF; const r = blob.stream().getReader();
+  for (;;){ const {done, value} = await r.read(); if (done) break; for (let i = 0; i < value.length; i++) c = crcT[(c ^ value[i]) & 255] ^ (c >>> 8); }
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+async function makeZip(entries){                    /* stores files without compression; keeps UTF-8 (Tibetan) names */
+  const parts = [], central = [], enc = new TextEncoder(); let off = 0;
+  const now = new Date(), dt = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate(), tm = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  if (entries.length > 65000) throw new Error('too many files for one zip');
+  for (const {name, blob} of entries){
+    const nb = enc.encode(name), crc = await crc32(blob), size = blob.size;
+    if (size > 0xFFFFFFF0) throw new Error('a file is too large for a zip');
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(10, tm, true); h.setUint16(12, dt, true);
+    h.setUint32(14, crc, true); h.setUint32(18, size, true); h.setUint32(22, size, true); h.setUint16(26, nb.length, true);
+    parts.push(h.buffer, nb, blob);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(12, tm, true); c.setUint16(14, dt, true);
+    c.setUint32(16, crc, true); c.setUint32(20, size, true); c.setUint32(24, size, true); c.setUint16(28, nb.length, true); c.setUint32(42, off, true);
+    central.push(c.buffer, nb);
+    off += 30 + nb.length + size;
+  }
+  let cdSize = 0; for (const x of central) cdSize += x.byteLength;
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, entries.length, true); e.setUint16(10, entries.length, true); e.setUint32(12, cdSize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, e.buffer], {type: 'application/zip'});
+}
+async function exportZip(its, rootFolder){
+  toast('Building zip…', true);
+  const entries = [], used = new Set(); let missing = 0;
+  const parent = rootFolder && rootFolder.includes('/') ? rootFolder.slice(0, rootFolder.lastIndexOf('/') + 1) : '';
+  try{
+    for (const it of its) for (const f of it.files || []){
+      if (!f.blob){ missing++; continue; }
+      let dir = it.folder || ''; if (rootFolder) dir = dir.slice(parent.length);
+      const p = (dir ? dir + '/' : '') + f.name; let name = p, n = 1;
+      while (used.has(name)){ n++; name = p.replace(/(\.[^./]*)?$/, ` (${n})$1`); }
+      used.add(name); entries.push({name, blob: f.blob});
+    }
+    if (!entries.length){ toast(missing ? 'Those files are not on this device yet (cloud only).' : 'Nothing to export.'); return; }
+    download(await makeZip(entries), (rootFolder ? rootFolder.split('/').pop() : 'my-works') + '.zip');
+    toast(`Zip ready · ${entries.length} file${entries.length === 1 ? '' : 's'}${missing ? ' · ' + missing + ' cloud-only skipped' : ''}`);
+  }catch(err){ toast('Could not build the zip: ' + err.message); }
+}
+
+/* =====================================================================
+   Reading inside Word / PowerPoint / Excel / OpenDocument files, and searching inside files
+   ===================================================================== */
+const DOCEXT = ['docx','pptx','xlsx','odt','odp','ods'];
+const NSW = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+async function zipXml(blob, entries, name){
+  const en = entries.find(x => x.name === name); if (!en) return null;
+  return new DOMParser().parseFromString(await (await zipEntryBlob(blob, en)).text(), 'application/xml');
+}
+async function docxBlocks(blob){
+  const es = await readZip(blob), doc = await zipXml(blob, es, 'word/document.xml'); if (!doc) return [];
+  const body = doc.getElementsByTagNameNS(NSW, 'body')[0]; if (!body) return [];
+  const ptext = p => { let s = ''; const walk = n => { for (const c of n.childNodes){ if (c.nodeType !== 1) continue; const ln = c.localName;
+      if (ln === 't') s += c.textContent; else if (ln === 'tab') s += '\t'; else if (ln === 'br' || ln === 'cr') s += '\n'; else if (ln === 'pPr' || ln === 'rPr') continue; else walk(c); } }; walk(p); return s; };
+  const out = [];
+  for (const el of body.children){
+    if (el.localName === 'p'){
+      const t = ptext(el); if (!t.trim()) continue;
+      const ps = el.getElementsByTagNameNS(NSW, 'pStyle')[0], st = ps ? (ps.getAttributeNS(NSW, 'val') || ps.getAttribute('w:val') || '') : '';
+      out.push({t: /^(Heading|Title|Subtitle)/i.test(st) ? 'h' : 'p', text: t});
+    } else if (el.localName === 'tbl'){
+      for (const tr of el.getElementsByTagNameNS(NSW, 'tr'))
+        out.push({t: 'tr', cells: [...tr.getElementsByTagNameNS(NSW, 'tc')].map(tc => [...tc.getElementsByTagNameNS(NSW, 'p')].map(ptext).join(' ').trim())});
+    }
+  }
+  return out;
+}
+async function pptxBlocks(blob){
+  const es = await readZip(blob), num = n => parseInt((n.match(/(\d+)\.xml$/) || [0, 0])[1]);
+  const slides = es.filter(e => /^ppt\/slides\/slide\d+\.xml$/.test(e.name)).sort((a, b) => num(a.name) - num(b.name));
+  const out = []; let n = 0;
+  for (const s of slides){
+    n++; out.push({t: 'h', text: 'Slide ' + n});
+    const doc = await zipXml(blob, es, s.name); if (!doc) continue;
+    for (const p of doc.getElementsByTagName('a:p')){
+      const t = [...p.getElementsByTagName('a:t')].map(x => x.textContent).join(''); if (t.trim()) out.push({t: 'p', text: t});
+    }
+  }
+  return out;
+}
+const colIndex = ref => { let n = 0; for (const ch of ref.replace(/\d+/g, '')) n = n * 26 + (ch.charCodeAt(0) - 64); return Math.max(0, n - 1); };
+async function xlsxBlocks(blob){
+  const es = await readZip(blob);
+  const ss = await zipXml(blob, es, 'xl/sharedStrings.xml');
+  const strings = ss ? [...ss.getElementsByTagName('si')].map(si => [...si.getElementsByTagName('t')].map(t => t.textContent).join('')) : [];
+  const wb = await zipXml(blob, es, 'xl/workbook.xml'), rels = await zipXml(blob, es, 'xl/_rels/workbook.xml.rels');
+  const relMap = {}; if (rels) for (const r of rels.getElementsByTagName('Relationship')) relMap[r.getAttribute('Id')] = r.getAttribute('Target');
+  const RNS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  const out = [];
+  for (const sh of (wb ? [...wb.getElementsByTagName('sheet')] : []).slice(0, 6)){
+    const rid = sh.getAttribute('r:id') || sh.getAttributeNS(RNS, 'id');
+    const sx = await zipXml(blob, es, 'xl/' + (relMap[rid] || '').replace(/^\/?(xl\/)?/, ''));
+    out.push({t: 'h', text: sh.getAttribute('name') || 'Sheet'}); if (!sx) continue;
+    let rows = 0;
+    for (const row of sx.getElementsByTagName('row')){
+      if (rows++ >= 200) break;
+      const cells = [];
+      for (const c of row.getElementsByTagName('c')){
+        const t = c.getAttribute('t'), v = c.getElementsByTagName('v')[0]; let val = '';
+        if (t === 's') val = v ? (strings[+v.textContent] ?? '') : '';
+        else if (t === 'inlineStr') val = [...c.getElementsByTagName('t')].map(x => x.textContent).join('');
+        else val = v ? v.textContent : '';
+        cells[colIndex(c.getAttribute('r') || '')] = val;
+      }
+      out.push({t: 'tr', cells: Array.from(cells, x => x ?? '').slice(0, 30)});
+    }
+  }
+  return out;
+}
+async function odfBlocks(blob){
+  const es = await readZip(blob), doc = await zipXml(blob, es, 'content.xml'); if (!doc) return [];
+  const out = [];
+  for (const el of doc.getElementsByTagName('*')) if (el.localName === 'h' || el.localName === 'p'){
+    const t = el.textContent.trim(); if (t) out.push({t: el.localName === 'h' ? 'h' : 'p', text: t});
+  }
+  return out;
+}
+async function docBlocks(f){
+  const e = extOf(f.name);
+  if (e === 'docx') return docxBlocks(f.blob);
+  if (e === 'pptx') return pptxBlocks(f.blob);
+  if (e === 'xlsx') return xlsxBlocks(f.blob);
+  if (e === 'odt' || e === 'odp' || e === 'ods') return odfBlocks(f.blob);
+  return null;
+}
+function blocksToHtml(bl){
+  let h = '', tbl = false;
+  for (const b of bl){
+    if (b.t !== 'tr' && tbl){ h += '</table>'; tbl = false; }
+    if (b.t === 'tr'){ if (!tbl){ h += '<table class="dt">'; tbl = true; } h += '<tr>' + b.cells.map(c => `<td>${esc(c)}</td>`).join('') + '</tr>'; }
+    else if (b.t === 'h') h += `<h4>${esc(b.text)}</h4>`;
+    else h += `<p>${esc(b.text)}</p>`;
+  }
+  return h + (tbl ? '</table>' : '');
+}
+const blocksToText = bl => bl.map(b => b.t === 'tr' ? b.cells.join(' ') : b.text).join('\n');
+
+async function extractText(f){
+  if (!f.blob) return '';
+  const e = extOf(f.name);
+  try{
+    if (/^(txt|md|csv|tsv|srt|vtt|json|xml)$/.test(e)) return (await f.blob.slice(0, 400000).text()).normalize('NFC');
+    if (/^html?$/.test(e)) return (await f.blob.slice(0, 400000).text()).replace(/<[^>]*>/g, ' ').normalize('NFC');
+    if (DOCEXT.includes(e)) return blocksToText(await docBlocks(f)).normalize('NFC').slice(0, 200000);
+    if (e === 'pdf') return (await extractPdfText(f.blob)).normalize('NFC');
+  }catch(err){ console.warn('Could not read text from', f.name, err); }
+  return '';
+}
+let indexing = false;
+async function indexPending(){
+  if (indexing) return; indexing = true;
+  try{
+    const todo = items.filter(it => it.ftv !== 1 && (it.files || []).some(f => f.blob));
+    let n = 0;
+    for (const t of todo){
+      n++; $('#idx').textContent = `Indexing ${n}/${todo.length}…`;
+      const cur = await dbGet(t.id); if (!cur) continue;
+      let ft = ''; for (const f of cur.files || []) ft += (await extractText(f)) + '\n';
+      cur.ft = ft.trim().slice(0, 250000); cur.ftv = 1; await dbPut(cur);
+      const mem = items.find(i => i.id === t.id); if (mem){ mem.ft = cur.ft; mem.ftv = 1; hayCache.delete(mem); }
+    }
+  }catch(err){}
+  indexing = false; $('#idx').textContent = '';
+  if (q) renderList();
+}
+
+/* =====================================================================
+   Events: sidebar, list, selection, detail
+   ===================================================================== */
+$('#side').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.all){ folder = null; kind = ''; special = null; render(); }
+  else if (b.dataset.special){ special = b.dataset.special; folder = null; kind = ''; render(); }
+  else if (b.dataset.folder !== undefined){ folder = b.dataset.folder; kind = ''; special = null; render(); }
+  else if (b.dataset.kind){ kind = kind === b.dataset.kind ? '' : b.dataset.kind; folder = null; special = null; render(); }
+  else if (b.id === 'export') exportAll();
+  else if (b.id === 'import') $('#import-file').click();
+  else if (b.id === 'open-set') openSettings();
+  else if (b.id === 'lock-now') lockNow();
+});
+$('#import-file').addEventListener('change', e => { if (e.target.files[0]){ importBackup(e.target.files[0]); e.target.value = ''; } });
+let qTimer; $('#q').addEventListener('input', e => { q = e.target.value; clearTimeout(qTimer); qTimer = setTimeout(renderList, 120); });
+$('#sort').addEventListener('change', e => { sortMode = e.target.value; renderList(); });
+$('#selmode').addEventListener('click', () => { selecting = !selecting; picked.clear(); renderList(); });
+
+$('#folderbar').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || folder === null) return;
+  if (b.dataset.fa === 'rename') renameFolder(folder);
+  else if (b.dataset.fa === 'zip') exportZip(items.filter(it => inFolder(it, folder)), folder);
+  else if (b.dataset.fa === 'offline') { try{ await setOffline(folder, !keepOffline(folder)); }catch(err){ toast(err.message); } }
+});
+async function renameFolder(path){
+  const nn = cleanFolder(prompt('Rename this folder. Changing the path also moves it:', path) || '');
+  if (!nn || nn === path) return;
+  for (const it of items) if (inFolder(it, path)){ it.folder = nn + it.folder.slice(path.length); await dbPut(it); }
+  const ov = {}; for (const k of Object.keys(S.offOv)) ov[k === path || k.startsWith(path + '/') ? nn + k.slice(path.length) : k] = S.offOv[k];
+  S.offOv = ov; saveS();
+  if (folder === path) folder = nn;
+  await load(); toast('Folder renamed');
+}
+
+$('#cards').addEventListener('click', e => {
+  if (e.target.id === 'seed'){ seed(); return; }
+  if (e.target.id === 'empty-add'){ openImport(); return; }
+  const c = e.target.closest('.card'); if (!c) return;
+  const id = +c.dataset.id;
+  if (selecting){ picked.has(id) ? picked.delete(id) : picked.add(id); renderList(); return; }
+  sel = id; O[id] = Date.now(); saveO();
+  $('#app').classList.add('show-detail'); renderList(); renderDetail(); renderSide();
+  $('#detail').scrollTop = 0;
+});
+$('#selbar').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const its = items.filter(i => picked.has(i.id));
+  if (b.dataset.sa === 'all'){ visible().forEach(i => picked.add(i.id)); renderList(); }
+  else if (b.dataset.sa === 'move'){ $('#folders').innerHTML = folderTree().map(f => `<option value="${esc(f.path)}">`).join(''); $('#mv-folder').value = ''; $('#mv').showModal(); }
+  else if (b.dataset.sa === 'fav'){
+    const all = its.every(i => i.fav);
+    for (const it of its){ it.fav = !all; await dbPut(it); }
+    toast(all ? 'Removed from favourites' : 'Added to favourites'); render();
+  }
+  else if (b.dataset.sa === 'zip') exportZip(its, null);
+  else if (b.dataset.sa === 'del'){
+    if (confirm(`Delete ${its.length} work${its.length === 1 ? '' : 's'} and their files from this library?`)){
+      for (const it of its) await dbDel(it.id);
+      picked.clear(); selecting = false; sel = null; await load(); toast('Deleted');
+    }
+  }
+});
+$('#mv-cancel').addEventListener('click', () => $('#mv').close());
+$('#mv-ok').addEventListener('click', async () => {
+  const to = cleanFolder($('#mv-folder').value); $('#mv').close();
+  const its = items.filter(i => picked.has(i.id)); toast('Moving…', true);
+  for (const it of its){ it.folder = to; await dbPut(it); }
+  picked.clear(); selecting = false; await load(); toast(`Moved ${its.length} work${its.length === 1 ? '' : 's'}`);
+});
+
+$('#detail').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const it = items.find(i => i.id === sel);
+  if (b.id === 'back') $('#app').classList.remove('show-detail');
+  else if (b.id === 'edit') openEditor(it);
+  else if (b.id === 'fav'){ it.fav = !it.fav; await dbPut(it); render(); }
+  else if (b.id === 'share') shareItem(it);
+  else if (b.id === 'delete'){
+    if (confirm('Delete “' + it.title + '” and its files from this library?')){
+      await dbDel(it.id); sel = null; $('#app').classList.remove('show-detail'); load();
+    }
+  } else if (b.dataset.tool){
+    if (b.dataset.tool === 'copy'){ try{ await navigator.clipboard.writeText(it.text); toast('Copied'); }catch(err){ toast('Could not copy here'); } }
+    else { S.scale = Math.max(0.8, Math.min(1.8, Math.round((S.scale + (b.dataset.tool === 'bigger' ? 0.1 : -0.1)) * 10) / 10)); saveS(); applyAppearance(); }
+  } else if (b.dataset.open !== undefined){
+    const f = it.files[+b.dataset.open]; let blob = f.blob;
+    if (/\.pdf$/i.test(f.name) && blob.type !== 'application/pdf') blob = new Blob([blob], {type:'application/pdf'});
+    window.open(URL.createObjectURL(blob), '_blank');
+  } else if (b.dataset.save !== undefined){
+    const f = it.files[+b.dataset.save]; download(f.blob, f.name);
+  } else if (b.dataset.dl !== undefined){
+    const f = it.files[+b.dataset.dl];
+    try{ b.disabled = true; toast('Downloading…', true); await downloadFile(it.id, f.rid); await load(); toast('Saved on this device'); }
+    catch(err){ b.disabled = false; toast(err.message); }
+  }
+});
+async function shareItem(it){
+  const files = (it.files || []).filter(f => f.blob).map(f => new File([f.blob], f.name, {type: f.type || 'application/octet-stream'}));
+  try{
+    if (files.length && navigator.canShare && navigator.canShare({files})){ await navigator.share({files, title: it.title, text: it.text || undefined}); return; }
+    if (!files.length && navigator.share){ await navigator.share({title: it.title, text: it.text || it.title}); return; }
+  }catch(err){ if (err.name === 'AbortError') return; }
+  if (files.length > 1) exportZip([it], null);
+  else if (files.length) download(files[0], files[0].name);
+  else if (it.text){ try{ await navigator.clipboard.writeText(it.text); toast('Sharing is not available here — text copied'); }catch(err){ toast('Sharing is not available here'); } }
+  else toast('Nothing to share yet');
+}
+
+/* =====================================================================
+   Add / import menu
+   ===================================================================== */
+function openImport(){
+  $('#folders').innerHTML = folderTree().map(f => `<option value="${esc(f.path)}">`).join('');
+  $('#imp-base').value = folder || '';
+  $('#imp').showModal();
+}
+$('#add').addEventListener('click', openImport);
+$('#imp-close').addEventListener('click', () => $('#imp').close());
+$('#opt-new').addEventListener('click', () => { const b = cleanFolder($('#imp-base').value); $('#imp').close(); openEditor(null, b); });
+const baseFolder = () => cleanFolder($('#imp-base').value);
+$('#imp-files').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; $('#imp').close(); importFiles(fs.map(f => ({file:f, path:f.name})), baseFolder()); });
+$('#imp-folder').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; $('#imp').close(); importFiles(fs.map(f => ({file:f, path:f.webkitRelativePath || f.name})), baseFolder()); });
+$('#imp-zip').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; $('#imp').close(); if (f) importZip(f, baseFolder()); });
+
+async function zipToList(file){
+  const entries = await readZip(file);
+  return entries.filter(en => !en.name.endsWith('/')).map(en => ({path:en.name, size:en.usize, get:() => zipEntryBlob(file, en)}));
+}
+async function importZip(file, base){
+  try{ toast('Reading ' + file.name + '…', true); await importList(await zipToList(file), base); }
+  catch(err){ toast('Could not unpack that zip: ' + err.message); }
+}
+async function importFiles(entries, base){
+  const list = [];
+  for (const {file, path} of entries){
+    if (/\.zip$/i.test(file.name) && confirm('Unpack “' + file.name + '” into your library?\n\nOK = unpack its files\nCancel = keep it as one file')){
+      try{ list.push(...await zipToList(file)); }catch(err){ toast('Could not unpack ' + file.name + ': ' + err.message); }
+    } else list.push({path, size:file.size, time:file.lastModified, get:async () => file});
+  }
+  await importList(list, base);
+}
+async function importList(list, base){
+  const have = new Set();
+  for (const it of items) for (const f of it.files || []) have.add((it.folder || '') + '|' + f.name + '|' + f.size);
+  let n = 0, skipped = 0, i = 0;
+  for (const ent of list){
+    i++;
+    const parts = ent.path.normalize('NFC').split('/').filter(Boolean);
+    const name = parts.pop();
+    if (!name || name.startsWith('.') || parts[0] === '__MACOSX'){ skipped++; continue; }     /* hidden / system files */
+    const fo = [base, ...parts].filter(Boolean).join('/');
+    const key = fo + '|' + name + '|' + ent.size;
+    if (have.has(key)){ skipped++; continue; }                                                /* already imported */
+    try{
+      const blob = await ent.get(), type = mimeFor(name, blob.type);
+      const b = blob.type === type ? blob : new Blob([blob], {type});
+      await dbPut({title:name.replace(/\.[^.]+$/, ''), folder:fo, tags:[], text:'',
+        files:[{name, type, size:b.size, blob:b}], created: ent.time || Date.now() - (list.length - i), updated: Date.now()});
+      have.add(key); n++;
+    }catch(err){ skipped++; }
+    toast(`Importing ${i} of ${list.length}…`, true);
+  }
+  await load();
+  toast(`Imported ${n} file${n === 1 ? '' : 's'}${skipped ? ' · ' + skipped + ' skipped' : ''}`);
+}
+
+/* ---------- new / edit work ---------- */
+let edFiles = [], edId = null, edCreated = null;
+function openEditor(it, presetFolder){
+  edId = it ? it.id : null; edCreated = it ? it.created : null;
+  $('#dlg-title').textContent = it ? 'Edit work' : 'New work';
+  $('#folders').innerHTML = folderTree().map(f => `<option value="${esc(f.path)}">`).join('');
+  $('#f-title').value = it?.title || '';
+  $('#f-folder').value = it ? (it.folder || '') : (presetFolder ?? (folder || ''));
+  $('#f-tags').value = (it?.tags || []).join(', ');
+  $('#f-text').value = it?.text || '';
+  edFiles = [...(it?.files || [])];
+  renderEdFiles();
+  $('#dlg').showModal();
+}
+function renderEdFiles(){
+  $('#ed-files').innerHTML = edFiles.map((f, i) =>
+    `<li><span>${ICON[kindOf(f)]} ${esc(f.name)} <small>${fmt(f.size)}</small></span><button type="button" data-rm="${i}" aria-label="Remove">✕</button></li>`).join('');
+}
+function addFiles(list){
+  for (const f of list){
+    if (edFiles.some(x => x.name === f.name && x.size === f.size)) continue;   /* skip the same file added twice */
+    edFiles.push({name:f.name, type:mimeFor(f.name, f.type), size:f.size, blob:f});
+  }
+  renderEdFiles();
+}
+const touchOnly = matchMedia('(pointer:coarse)').matches && !matchMedia('(hover:hover)').matches;
+$('#drop-hint').textContent = touchOnly ? 'Tap Browse to pick files from this device.' : 'Drag & drop files here, or use Browse.';
+$('#f-files').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+['dragover','dragenter'].forEach(ev => $('#drop').addEventListener(ev, e => { e.preventDefault(); $('#drop').classList.add('over'); }));
+['dragleave','drop'].forEach(ev => $('#drop').addEventListener(ev, e => { e.preventDefault(); $('#drop').classList.remove('over'); }));
+$('#drop').addEventListener('drop', e => addFiles(e.dataTransfer.files));
+$('#ed-files').addEventListener('click', e => {
+  const b = e.target.closest('[data-rm]'); if (b){ edFiles.splice(+b.dataset.rm, 1); renderEdFiles(); }
+});
+$('#cancel').addEventListener('click', () => $('#dlg').close());
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  let title = $('#f-title').value.trim().normalize('NFC');
+  if (!title && edFiles.length) title = edFiles[0].name.replace(/\.[^.]+$/, '').normalize('NFC');
+  if (!title){ $('#f-title').focus(); $('#f-title').placeholder = 'Please type a title (or attach a file)'; return; }
+  const old = edId ? items.find(i => i.id === edId) : null;
+  const it = {...(old || {}), title, folder: cleanFolder($('#f-folder').value),
+    tags: $('#f-tags').value.split(',').map(t => t.trim()).filter(Boolean),
+    text: $('#f-text').value.normalize('NFC'), files: edFiles, ftv: 0,
+    created: edCreated || Date.now(), updated: Date.now()};
+  if (edId) it.id = edId;
+  const id = await dbPut(it);
+  sel = id; $('#dlg').close(); $('#app').classList.add('show-detail'); load();
+});
+
+/* ---------- drag & drop anywhere (laptop / tablet): files and whole folders ---------- */
+let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+async function dropEntries(dt){
+  const out = [];
+  const roots = [...(dt.items || [])].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);   /* read synchronously */
+  if (!roots.length) return [...dt.files].map(f => ({file:f, path:f.name}));
+  const walk = async (en, path) => {
+    if (en.isFile){ const f = await new Promise(r => en.file(r)); out.push({file:f, path:path + f.name}); }
+    else {
+      const rd = en.createReader(); let all = [];
+      for (;;){ const b = await new Promise(r => rd.readEntries(r)); if (!b.length) break; all = all.concat(b); }
+      for (const c of all) await walk(c, path + en.name + '/');
+    }
+  };
+  for (const r of roots) await walk(r, '');
+  return out;
+}
+window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; if (!$('#dlg').open) $('#dropall').hidden = false; });
+window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('#dropall').hidden = true; });
+window.addEventListener('drop', async e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; $('#dropall').hidden = true;
+  if (e.target.closest && e.target.closest('#drop')) return;          /* the form's drop box handles its own drops */
+  if ($('#dlg').open){ addFiles([...e.dataTransfer.files]); return; }
+  if ($('#imp').open) $('#imp').close();
+  const entries = await dropEntries(e.dataTransfer);
+  if (entries.length) importFiles(entries, folder || '');
+});
+
+/* =====================================================================
+   Backup / restore
+   ===================================================================== */
+const toDataURL = b => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); });
+function fromDataURL(u){
+  const [h, b] = u.split(','), m = (h.match(/:(.*?);/) || [,'application/octet-stream'])[1];
+  const bin = atob(b), a = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  return new Blob([a], {type: m});
+}
+async function exportAll(){
+  toast('Preparing backup…', true);
+  const out = [];
+  for (const it of items)
+    out.push({...it, files: await Promise.all((it.files || []).map(async f => ({...f, blob: undefined, data: f.blob ? await toDataURL(f.blob) : null})))});
+  download(new Blob([JSON.stringify({version:3, items:out})], {type:'application/json'}), 'my-works-backup.json');
+  toast('Backup saved');
+}
+async function importBackup(file){
+  try{
+    const j = JSON.parse(await file.text());
+    for (const it of j.items){
+      const files = (it.files || []).map(f => { const {data, ...rest} = f; return {...rest, blob: data ? fromDataURL(data) : null}; });
+      delete it.id; await dbPut({...it, files});
+    }
+    await load(); toast('Backup restored');
+  }catch(err){ alert('Could not read that backup file.'); }
+}
+
+/* =====================================================================
+   Google Drive sync (read-only) with "keep on this device" per folder
+   ===================================================================== */
+const GSCOPE = 'https://www.googleapis.com/auth/drive.readonly', DAPI = 'https://www.googleapis.com/drive/v3';
+const GNATIVE = {
+  'application/vnd.google-apps.document':     ['docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  'application/vnd.google-apps.spreadsheet':  ['xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  'application/vnd.google-apps.presentation': ['pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation']
+};
+let tok = null, tokExp = 0, gisP = null;
+function loadGis(){
+  if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+  if (!gisP) gisP = new Promise((ok, no) => {
+    const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = ok;
+    s.onerror = () => { gisP = null; no(new Error('Could not reach Google — are you online?')); };
+    document.head.appendChild(s);
+  });
+  return gisP;
+}
+async function getToken(){
+  if (tok && Date.now() < tokExp - 60000) return tok;
+  if (!S.clientId) throw new Error('Add your Google Client ID in Settings first.');
+  if (!navigator.onLine) throw new Error('You are offline.');
+  await loadGis();
+  return new Promise((ok, no) => {
+    const c = google.accounts.oauth2.initTokenClient({client_id: S.clientId, scope: GSCOPE,
+      callback: r => { if (r.error){ no(new Error(r.error_description || r.error)); return; } tok = r.access_token; tokExp = Date.now() + (r.expires_in || 3600) * 1000; ok(tok); },
+      error_callback: e => no(new Error('Google sign-in did not finish' + (e && e.type ? ' (' + e.type + ')' : '')))});
+    c.requestAccessToken();
+  });
+}
+async function gfetch(url, asBlob){
+  let t = await getToken();
+  let r = await fetch(url, {headers: {Authorization: 'Bearer ' + t}});
+  if (r.status === 401){ tok = null; t = await getToken(); r = await fetch(url, {headers: {Authorization: 'Bearer ' + t}}); }
+  if (!r.ok) throw new Error('Google Drive answered ' + r.status);
+  return asBlob ? r.blob() : r.json();
+}
+async function listChildren(id, onlyFolders){
+  let out = [], pt = '';
+  do{
+    const qq = `'${id}' in parents and trashed=false` + (onlyFolders ? " and mimeType='application/vnd.google-apps.folder'" : '');
+    const u = `${DAPI}/files?q=${encodeURIComponent(qq)}&fields=${encodeURIComponent('nextPageToken,files(id,name,mimeType,size,modifiedTime,md5Checksum)')}&pageSize=1000` + (pt ? '&pageToken=' + encodeURIComponent(pt) : '');
+    const j = await gfetch(u); out = out.concat(j.files || []); pt = j.nextPageToken || '';
+  }while(pt);
+  return out;
+}
+async function walkDrive(id, rel, out){
+  for (const f of await listChildren(id)){
+    const nm = f.name.replace(/\//g, '-');
+    if (f.mimeType === 'application/vnd.google-apps.folder') await walkDrive(f.id, rel ? rel + '/' + nm : nm, out);
+    else if (GNATIVE[f.mimeType]){ const [ext, mt] = GNATIVE[f.mimeType]; out.push({id:f.id, folder:rel, name:nm + '.' + ext, type:mt, size:0, mod:f.modifiedTime, native:mt}); }
+    else if (f.mimeType.startsWith('application/vnd.google-apps.')) continue;                   /* forms, maps, shortcuts… */
+    else out.push({id:f.id, folder:rel, name:nm, type:mimeFor(nm, f.mimeType), size:+f.size || 0, mod:(f.modifiedTime || '') + (f.md5Checksum || '')});
+  }
+}
+async function syncDrive(){
+  if (!S.drive) throw new Error('Choose a Drive folder first (Settings).');
+  if (!navigator.onLine) throw new Error('You are offline — sync needs internet.');
+  toast('Reading your Drive folder…', true);
+  await getToken();
+  const remote = []; await walkDrive(S.drive.id, '', remote);
+  const base = S.drive.id === 'root' ? '' : S.drive.name.replace(/\//g, '-');
+  const byRid = new Map();
+  for (const it of items) for (const f of it.files || []) if (f.rid) byRid.set(f.rid, it.id);
+  const seen = new Set(); let added = 0, updated = 0;
+  for (const r of remote){
+    seen.add(r.id);
+    const fo = [base, r.folder].filter(Boolean).join('/');
+    const itemId = byRid.get(r.id);
+    if (!itemId){
+      await dbPut({title:r.name.replace(/\.[^.]+$/, ''), folder:fo, tags:[], text:'', created:Date.now() - added, updated:Date.now(), ftv:0,
+        files:[{name:r.name, type:r.type, size:r.size, blob:null, rid:r.id, rmod:r.mod, root:S.drive.id, native:r.native}]});
+      added++;
+    } else {
+      const cur = await dbGet(itemId), f = cur.files.find(x => x.rid === r.id);
+      if (f.rmod !== r.mod || cur.folder !== fo || f.name !== r.name){
+        if (cur.title === f.name.replace(/\.[^.]+$/, '')) cur.title = r.name.replace(/\.[^.]+$/, '');
+        if (f.rmod !== r.mod){ f.blob = null; f.size = r.size; cur.ftv = 0; cur.ft = ''; }
+        f.rmod = r.mod; f.name = r.name; f.type = r.type; f.root = S.drive.id; cur.folder = fo;
+        await dbPut(cur); updated++;
+      }
+    }
+  }
+  const goneIds = []; items.forEach(it => (it.files || []).forEach(f => { if (f.rid && f.root === S.drive.id && !seen.has(f.rid)) goneIds.push(it.id); }));
+  const gone = [...new Set(goneIds)];
+  if (gone.length && confirm(`${gone.length} file${gone.length === 1 ? ' was' : 's were'} removed from Drive. Remove ${gone.length === 1 ? 'it' : 'them'} from this device too?`))
+    for (const id of gone) await dbDel(id);
+  S.lastSync = Date.now(); saveS(); await load();
+  const dl = await downloadWanted();
+  await load();
+  toast(`Synced · ${added} new, ${updated} changed${dl ? ', ' + dl + ' downloaded' : ''}`);
+}
+async function downloadFile(itemId, rid){
+  const cur = await dbGet(itemId), f = cur.files.find(x => x.rid === rid); if (!f) throw new Error('File not found');
+  const url = f.native ? `${DAPI}/files/${rid}/export?mimeType=${encodeURIComponent(f.native)}` : `${DAPI}/files/${rid}?alt=media`;
+  const b = await gfetch(url, true);
+  f.blob = b.type === f.type ? b : new Blob([b], {type: f.type}); f.size = f.blob.size; cur.ftv = 0;
+  await dbPut(cur);
+}
+async function downloadWanted(path){
+  const want = items.filter(it => (it.files || []).some(f => f.rid && !f.blob) && (path === undefined ? keepOffline(it.folder || '') : inFolder(it, path)));
+  let n = 0;
+  for (const it of want) for (const f of it.files) if (f.rid && !f.blob){ n++; toast(`Downloading ${n}…`, true); await downloadFile(it.id, f.rid); }
+  return n;
+}
+async function setOffline(path, on){
+  S.offOv[path] = on; for (const k of Object.keys(S.offOv)) if (k.startsWith(path + '/')) delete S.offOv[k]; saveS();
+  if (on){
+    const n = await downloadWanted(path); await load(); toast(n ? `Downloaded ${n} file${n === 1 ? '' : 's'} to this device` : 'Already on this device');
+  } else {
+    const targets = items.filter(it => inFolder(it, path) && (it.files || []).some(f => f.rid && f.blob));
+    if (targets.length && confirm(`Free up space by removing the downloaded copies of ${targets.length} file${targets.length === 1 ? '' : 's'} in this folder? They stay in Google Drive and can be downloaded again.`)){
+      for (const it of targets){ const cur = await dbGet(it.id); cur.files.forEach(f => { if (f.rid) f.blob = null; }); await dbPut(cur); }
+      await load(); toast('Space freed — the files are cloud-only now');
+    } else { await load(); }
+  }
+}
+
+/* Drive folder picker */
+let drvStack = [];
+async function drvShow(){
+  const cur = drvStack[drvStack.length - 1];
+  $('#drv-path').textContent = drvStack.map(s => s.name).join(' › ');
+  $('#drv-back').disabled = drvStack.length < 2;
+  $('#drv-list').innerHTML = '<div class="hint">Loading…</div>';
+  try{
+    const kids = (await listChildren(cur.id, true)).sort((a, b) => collator.compare(a.name, b.name));
+    $('#drv-list').innerHTML = kids.map(k => `<button type="button" class="opt" data-id="${esc(k.id)}" data-name="${esc(k.name)}"><b>📁 ${esc(k.name)}</b></button>`).join('') || '<div class="hint">No subfolders here.</div>';
+  }catch(err){ $('#drv-list').innerHTML = `<div class="hint">${esc(err.message)}</div>`; }
+}
+$('#drv-list').addEventListener('click', e => { const b = e.target.closest('.opt'); if (!b) return; drvStack.push({id:b.dataset.id, name:b.dataset.name}); drvShow(); });
+$('#drv-back').addEventListener('click', () => { if (drvStack.length > 1){ drvStack.pop(); drvShow(); } });
+$('#drv-cancel').addEventListener('click', () => $('#drv').close());
+$('#drv-use').addEventListener('click', () => {
+  const cur = drvStack[drvStack.length - 1];
+  S.drive = {id: cur.id, name: cur.id === 'root' ? 'My Drive' : cur.name}; saveS(); $('#drv').close(); fillSettings();
+});
+
+/* =====================================================================
+   Settings, PIN lock
+   ===================================================================== */
+const enc = new TextEncoder();
+async function hashPin(pin, salt){
+  if (window.crypto && crypto.subtle){
+    const k = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({name:'PBKDF2', salt:enc.encode(salt), iterations:100000, hash:'SHA-256'}, k, 256);
+    return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  let h = 0; for (const c of salt + pin) h = (h * 31 + c.charCodeAt(0)) | 0; return 'w' + h;      /* basic fallback when the browser has no crypto */
+}
+function lockNow(){
+  if (!S.pinHash) return;
+  document.querySelectorAll('dialog[open]').forEach(d => d.close());
+  $('#lock').hidden = false; $('#app').inert = true; $('#lock-pin').value = ''; $('#lock-msg').textContent = '';
+  setTimeout(() => $('#lock-pin').focus(), 50);
+}
+$('#lock-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (await hashPin($('#lock-pin').value, S.pinSalt) === S.pinHash){ $('#lock').hidden = true; $('#app').inert = false; $('#lock-msg').textContent = ''; }
+  else { $('#lock-msg').textContent = 'Wrong PIN'; $('#lock-pin').value = ''; }
+});
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (S.pinHash && hiddenAt && Date.now() - hiddenAt > 60000) lockNow();     /* locks after a minute away */
+});
+
+let pinMode = 'set';
+function openPin(mode){
+  pinMode = mode;
+  $('#pin-title').textContent = mode === 'set' ? 'Set a PIN' : mode === 'change' ? 'Change PIN' : 'Remove PIN';
+  $('#pin-cur-l').hidden = mode === 'set'; $('#pin-new-l').hidden = mode === 'remove'; $('#pin-new2-l').hidden = mode === 'remove';
+  $('#pin-note').hidden = mode === 'remove';
+  ['#pin-cur', '#pin-new', '#pin-new2'].forEach(s => $(s).value = ''); $('#pin-msg').textContent = '';
+  $('#pin').showModal();
+}
+$('#pin-cancel').addEventListener('click', () => $('#pin').close());
+$('#pin-ok').addEventListener('click', async () => {
+  const msg = t => { $('#pin-msg').textContent = t; };
+  if (pinMode !== 'set' && await hashPin($('#pin-cur').value, S.pinSalt) !== S.pinHash) return msg('Current PIN is wrong.');
+  if (pinMode === 'remove'){ S.pinSalt = ''; S.pinHash = ''; saveS(); $('#pin').close(); fillSettings(); renderSide(); toast('PIN removed'); return; }
+  const a = $('#pin-new').value, b = $('#pin-new2').value;
+  if (a.length < 4) return msg('Use at least 4 characters.');
+  if (a !== b) return msg('The two PINs do not match.');
+  S.pinSalt = Array.from(crypto.getRandomValues(new Uint8Array(12)), x => x.toString(16).padStart(2, '0')).join('');
+  S.pinHash = await hashPin(a, S.pinSalt); saveS(); $('#pin').close(); fillSettings(); renderSide(); toast('PIN saved');
+});
+
+function fillSettings(){
+  $('#s-theme').value = S.theme; $('#s-scale').value = S.scale; $('#s-client').value = S.clientId; $('#s-offdef').checked = S.offDefault;
+  const signed = tok && Date.now() < tokExp;
+  $('#s-drive-status').textContent = (S.drive ? 'Folder: ' + S.drive.name : 'No Drive folder chosen yet') + ' · ' + (signed ? 'signed in' : 'not signed in')
+    + (S.lastSync ? ' · last sync ' + new Date(S.lastSync).toLocaleString() : '');
+  $('#s-pin-status').textContent = S.pinHash ? 'PIN is on. The app locks itself after a minute away.' : 'No PIN set.';
+  $('#s-pin-btns').innerHTML = S.pinHash ? '<button type="button" class="btn sm" data-pin="change">Change PIN</button><button type="button" class="btn sm" data-pin="remove">Remove PIN</button>'
+    : '<button type="button" class="btn sm" data-pin="set">Set a PIN</button>';
+  if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(e => {
+    const p = navigator.storage.persisted ? navigator.storage.persisted() : Promise.resolve(false);
+    p.then(pp => { $('#s-storage').textContent = `${fmt(e.usage || 0)} used on this device · storage is ${pp ? 'protected from automatic clean-up' : 'not yet protected from automatic clean-up (installing the app helps)'}`; });
+  });
+}
+function openSettings(){ fillSettings(); $('#set').showModal(); }
+$('#set-close').addEventListener('click', () => $('#set').close());
+$('#s-theme').addEventListener('change', e => { S.theme = e.target.value; saveS(); applyAppearance(); });
+$('#s-scale').addEventListener('input', e => { S.scale = +e.target.value; saveS(); applyAppearance(); });
+$('#s-client').addEventListener('change', e => { S.clientId = e.target.value.trim(); saveS(); });
+$('#s-offdef').addEventListener('change', e => { S.offDefault = e.target.checked; saveS(); });
+$('#s-export').addEventListener('click', exportAll);
+$('#s-import').addEventListener('click', () => $('#import-file').click());
+$('#s-pin-btns').addEventListener('click', e => { const b = e.target.closest('[data-pin]'); if (b) openPin(b.dataset.pin); });
+$('#s-connect').addEventListener('click', async () => { try{ S.clientId = $('#s-client').value.trim(); saveS(); await getToken(); fillSettings(); toast('Signed in to Google'); }catch(err){ toast(err.message); } });
+$('#s-choose').addEventListener('click', async () => {
+  try{ S.clientId = $('#s-client').value.trim(); saveS(); await getToken(); }catch(err){ toast(err.message); return; }
+  drvStack = [{id:'root', name:'My Drive'}]; $('#drv').showModal(); drvShow();
+});
+$('#s-sync').addEventListener('click', async () => { try{ S.clientId = $('#s-client').value.trim(); saveS(); $('#set').close(); await syncDrive(); }catch(err){ toast(err.message); } });
+
+/* =====================================================================
+   Sample data
+   ===================================================================== */
+function beep(){
+  const sr = 8000, n = sr * 2, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0,'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8,'WAVEfmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36,'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.sin(2 * Math.PI * 440 * i / sr) * 3000 * (1 - i / n), true);
+  return new Blob([buf], {type:'audio/wav'});
+}
+async function seed(){
+  const now = Date.now();
+  const txt = new Blob(['Lesson notes — sample text file.\nཀ ཁ ག ང\nཅ ཆ ཇ ཉ'], {type:'text/plain'});
+  const wav = beep();
+  await dbPut({title:'རང་ཡུལ་གྱི་དྲན་གཞི།', folder:'Samples/Writing', tags:['sample','poem'],
+    text:'གངས་རིའི་རྩེ་མོ་ནམ་མཁར་འཕུར། །\nཆུ་མོའི་སྒྲ་དབྱངས་སེམས་ལ་འཁོར། །\nརང་ཡུལ་དྲན་པའི་མེ་ཏོག་རྒྱས། །',
+    files:[], created:now - 2000});
+  await dbPut({title:'Why our language matters', folder:'Samples/Writing', tags:['sample','essay'],
+    text:'A short sample essay. Works can be written in any language — Tibetan, English, or both — and search finds any part of the text.',
+    files:[], created:now - 1000});
+  await dbPut({title:'Alphabet lesson', folder:'Samples/Lessons', tags:['sample','grade 1'],
+    text:'Sample lesson with an audio file and a text file attached, to show how files are stored and played offline.',
+    files:[{name:'sample-tone.wav', type:'audio/wav', size:wav.size, blob:wav},
+           {name:'lesson-notes.txt', type:'text/plain', size:txt.size, blob:txt}], created:now});
+  load();
+}
+
+/* =====================================================================
+   Start
+   ===================================================================== */
+(async () => {
+  applyAppearance();
+  if (S.pinHash) lockNow();
+  await openDB();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  matchMedia('(min-width:640px)').addEventListener('change', () => { $('#app').classList.remove('show-detail'); load(); });
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+  load();
+})();
+})();
+</script>
+</body>
+</html>
