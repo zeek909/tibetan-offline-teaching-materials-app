@@ -167,6 +167,7 @@ label input[type=range]{padding:0}
 .opt span{font-size:.85rem;color:var(--muted)}
 #drv-list{display:grid;gap:8px;max-height:46dvh;overflow:auto}
 #dropall{position:fixed;inset:0;background:rgba(140,29,24,.88);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:1.4rem;z-index:50;pointer-events:none}
+#bk{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + var(--sab));z-index:55;max-width:min(560px,calc(100vw - 24px));background:#2b2118;color:#fff;padding:12px 14px;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.35);display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.92rem}#bk[hidden]{display:none}#bk .btn{padding:6px 12px;min-height:0}#bk .btn:not(.primary){color:#2b2118}.guide{margin:2px 0 6px;font-size:.9rem}.guide summary{cursor:pointer;color:var(--accent,#8c1d18);padding:4px 2px}.guide ol{margin:6px 0 4px 18px;padding:0}.guide li{margin:3px 0}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + var(--sab));z-index:60;background:#2b2118;color:#fff;padding:10px 18px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:92vw;text-align:center;font-size:.9rem}
 #lock{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:20px}
 #lock form{display:grid;gap:12px;width:min(340px,100%);text-align:center}
@@ -265,6 +266,7 @@ label input[type=range]{padding:0}
 
 <input type="file" id="import-file" accept=".json" class="vh">
 <div id="dropall" hidden>Drop files or folders to add them to your library</div>
+<div id="bk" hidden><span>💾 Your library lives only on this device. Save a backup copy?</span><button class="btn primary" id="bk-now">Back up now</button><button class="btn" id="bk-later">Later</button></div>
 <div id="toast" hidden></div>
 
 <div id="lock" hidden>
@@ -289,6 +291,7 @@ label input[type=range]{padding:0}
     <input type="file" id="imp-folder" webkitdirectory multiple class="vh">
     <label class="opt" for="imp-zip"><b>🗜️ Import a Google Drive .zip</b><span>In Drive: right-click your folder → Download. Then pick that .zip here.</span></label>
     <input type="file" id="imp-zip" accept=".zip,application/zip" class="vh">
+    <details class="guide"><summary>How do I get my files from Google Drive?</summary><ol><li>Open <b>drive.google.com</b> in Chrome (on the phone, choose <b>Desktop site</b>).</li><li>Right-click your folder and choose <b>Download</b>. Google prepares a .zip file.</li><li>Come back here, tap <b>Import a Google Drive .zip</b> and pick that file.</li><li>Your folders and files appear here and work with no internet.</li></ol>Repeat this whenever you add new work to Drive.</details>
     <div class="foot"><button type="button" class="btn" id="imp-close">Close</button></div>
   </div>
 </dialog>
@@ -1231,6 +1234,7 @@ async function exportAll(){
   for (const it of items)
     out.push({...it, files: await Promise.all((it.files || []).map(async f => ({...f, blob: undefined, data: f.blob ? await toDataURL(f.blob) : null})))});
   download(new Blob([JSON.stringify({version:3, items:out})], {type:'application/json'}), 'my-works-backup.json');
+  S.lastBackup = Date.now(); saveS(); $('#bk').hidden = true;
   toast('Backup saved');
 }
 async function importBackup(file){
@@ -1501,8 +1505,33 @@ async function seed(){
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
   matchMedia('(min-width:640px)').addEventListener('change', () => { $('#app').classList.remove('show-detail'); load(); });
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
-  load();
+  await load();
+  checkBackup();
+  setTimeout(takeShared, 600);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) takeShared(); });
 })();
+function checkBackup(){
+  try{
+    if (!items.length){ return; }
+    if (!S.lastBackup){ S.lastBackup = Date.now(); saveS(); return; }
+    const due = Date.now() - S.lastBackup > 30*864e5 && Date.now() - (S.bkSnooze || 0) > 3*864e5;
+    $('#bk').hidden = !due;
+  }catch(e){}
+}
+$('#bk-now').addEventListener('click', () => exportAll());
+$('#bk-later').addEventListener('click', () => { S.bkSnooze = Date.now(); saveS(); $('#bk').hidden = true; });
+async function takeShared(){
+  try{
+    if (!window.AndroidBridge || !AndroidBridge.sharedList) return;
+    const l = JSON.parse(AndroidBridge.sharedList());
+    if (!l.length) return;
+    const files = [];
+    for (const f of l){ const r = await fetch('/__shared/' + f.i); files.push(new File([await r.blob()], f.name, {type: f.type || 'application/octet-stream'})); }
+    AndroidBridge.sharedClear();
+    await importFiles(files.map(f => ({file:f, path:f.name})), '');
+  }catch(e){ toast('Could not add the shared file'); }
+}
+window.takeShared = takeShared;
 })();
 </script>
 </body>

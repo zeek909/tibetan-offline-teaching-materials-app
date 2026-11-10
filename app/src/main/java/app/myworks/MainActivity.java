@@ -13,7 +13,9 @@ import android.webkit.*;
 import android.widget.Toast;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends Activity {
@@ -21,6 +23,7 @@ public class MainActivity extends Activity {
     WebView web;
     ValueCallback<Uri[]> fileCb;
     OutputStream out; String outName;
+    final List<String[]> shared = new ArrayList<>(); // name, mime, path
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -41,6 +44,19 @@ public class MainActivity extends Activity {
                 Uri u = r.getUrl();
                 if (!HOST.equals(u.getHost())) return null;
                 String p = u.getPath();
+                if (p != null && p.startsWith("/__shared/")) {
+                    try {
+                        int i = Integer.parseInt(p.substring(10));
+                        synchronized (shared) {
+                            String[] f = shared.get(i);
+                            Map<String, String> sh = new HashMap<>();
+                            sh.put("Access-Control-Allow-Origin", "*");
+                            return new WebResourceResponse(f[1], null, 200, "OK", sh, new FileInputStream(f[2]));
+                        }
+                    } catch (Exception e) {
+                        return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", new HashMap<String, String>(), new ByteArrayInputStream(new byte[0]));
+                    }
+                }
                 if (p == null || p.equals("/")) p = "/index.html";
                 String mime = mimeOf(p);
                 Map<String, String> h = new HashMap<>();
@@ -86,7 +102,50 @@ public class MainActivity extends Activity {
             }
         });
 
+        collectShared(getIntent());
         web.loadUrl("https://" + HOST + "/index.html");
+    }
+
+    @Override protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        setIntent(i);
+        collectShared(i);
+        web.evaluateJavascript("window.takeShared&&window.takeShared()", null);
+    }
+
+    void collectShared(Intent in) {
+        if (in == null) return;
+        String a = in.getAction();
+        List<Uri> uris = new ArrayList<>();
+        if (Intent.ACTION_SEND.equals(a)) {
+            Uri u = in.getParcelableExtra(Intent.EXTRA_STREAM);
+            if (u != null) uris.add(u);
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(a)) {
+            ArrayList<Uri> l = in.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            if (l != null) uris.addAll(l);
+        }
+        if (uris.isEmpty()) return;
+        File dir = new File(getCacheDir(), "shared");
+        dir.mkdirs();
+        synchronized (shared) {
+            for (Uri u : uris) {
+                try {
+                    String name = null;
+                    try (android.database.Cursor c = getContentResolver().query(u, new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+                        if (c != null && c.moveToFirst()) name = c.getString(0);
+                    } catch (Exception ignored) {}
+                    if (name == null) name = "shared-" + System.currentTimeMillis();
+                    String mime = getContentResolver().getType(u);
+                    if (mime == null) mime = "application/octet-stream";
+                    File f = new File(dir, shared.size() + "-" + name.replaceAll("[\\\\/:*?\"<>|]", "_"));
+                    try (InputStream is = getContentResolver().openInputStream(u); OutputStream os = new FileOutputStream(f)) {
+                        byte[] buf = new byte[65536]; int n;
+                        while ((n = is.read(buf)) > 0) os.write(buf, 0, n);
+                    }
+                    shared.add(new String[]{name, mime, f.getAbsolutePath()});
+                } catch (Exception ignored) {}
+            }
+        }
     }
 
     static String JSONq(String s) { return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\""; }
@@ -125,6 +184,23 @@ public class MainActivity extends Activity {
     }
 
     class Bridge {
+        @JavascriptInterface public String sharedList() {
+            StringBuilder sb = new StringBuilder("[");
+            synchronized (shared) {
+                for (int i = 0; i < shared.size(); i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append("{\"i\":").append(i).append(",\"name\":").append(JSONq(shared.get(i)[0]))
+                      .append(",\"type\":").append(JSONq(shared.get(i)[1])).append("}");
+                }
+            }
+            return sb.append("]").toString();
+        }
+        @JavascriptInterface public void sharedClear() {
+            synchronized (shared) {
+                for (String[] f : shared) new File(f[2]).delete();
+                shared.clear();
+            }
+        }
         @JavascriptInterface public void begin(String name, String mime) {
             try {
                 outName = name.replaceAll("[\\\\/:*?\"<>|]", "_");
